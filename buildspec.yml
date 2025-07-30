@@ -1,0 +1,26 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - $(aws ecr get-login --no-include-email --region us-east-1)
+      - REPO=165270212723.dkr.ecr.us-east-1.amazonaws.com/odoo-app
+      - TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building Docker image...
+      - docker build -t $REPO:$TAG .
+      - docker tag $REPO:$TAG $REPO:latest
+  post_build:
+    commands:
+      - echo Pushing image to ECR...
+      - docker push $REPO:$TAG
+      - docker push $REPO:latest
+      - echo Updating ECS service...
+      - aws ecs update-service \
+          --cluster demo-cluster \
+          --service odoo-service-6xfmftdl \
+          --force-new-deployment \
+          --region us-east-1
