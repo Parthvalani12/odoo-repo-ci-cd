@@ -6,8 +6,8 @@ env:
     AWS_REGION: "us-east-1"
     IMAGE_TAG: "latest"
     REPOSITORY_NAME: "ci/cd"
-    CLUSTER_NAME: "your-ecs-cluster-name"
-    SERVICE_NAME: "your-ecs-service-name"
+    CLUSTER_NAME: "demo-cluster"
+    SERVICE_NAME: "odoo-service-6xfmftdl"
 
 phases:
   pre_build:
