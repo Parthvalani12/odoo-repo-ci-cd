@@ -12,9 +12,10 @@ phases:
     commands:
       - echo Logging in to Amazon ECR...
       - aws --version
-      - >
-        aws ecr get-login-password --region $AWS_REGION |
-        docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - |
+        LOGIN_PASSWORD=$(aws ecr get-login-password --region $AWS_REGION) && \
+        echo "$LOGIN_PASSWORD" | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com || \
+        { echo "❌ Docker login failed"; exit 1; }
       - export REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPOSITORY_NAME
       - echo Repository URI is $REPOSITORY_URI
 
