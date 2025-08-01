@@ -1,4 +1,4 @@
-FROM oecinternal/odoo:18.0
+FROM oecinternal/odoo:17.0
 RUN mkdir -p /tmp/extra-addons
 
 
