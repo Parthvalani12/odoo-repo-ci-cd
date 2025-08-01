@@ -40,5 +40,31 @@ phases:
           --force-new-deployment \
           --region $AWS_REGION
 
+      - echo Waiting for tasks to start...
+      - sleep 30  # Wait for new task to spin up
+
+      # Check for failed tasks in the last 5 attempts
+      - echo Checking recent ECS task status...
+      - |
+        TASK_ARNS=$(aws ecs list-tasks \
+          --cluster $CLUSTER_NAME \
+          --service-name $SERVICE_NAME \
+          --desired-status STOPPED \
+          --max-items 5 \
+          --region $AWS_REGION \
+          --query 'taskArns' --output text)
+
+        if [ -n "$TASK_ARNS" ]; then
+          echo "Found recent stopped tasks. Describing them..."
+          aws ecs describe-tasks \
+            --cluster $CLUSTER_NAME \
+            --tasks $TASK_ARNS \
+            --region $AWS_REGION \
+            --query 'tasks[*].{Task:taskArn, LastStatus:lastStatus, ExitCode:containers[0].exitCode, Reason:stoppedReason}' \
+            --output table
+        else
+          echo "No recently stopped tasks found."
+        fi
+
 artifacts:
   files: []
