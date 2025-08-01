@@ -42,8 +42,8 @@ phases:
       - echo Updating ECS service with new image...
       - |
         aws ecs update-service \
-          --cluster $CLUSTER_NAME \
-          --service $SERVICE_NAME \
+          --cluster $ECS_CLUSTER_NAME \
+          --service $ECS_SERVICE_NAME \
           --force-new-deployment \
           --region $AWS_REGION
 
@@ -53,8 +53,8 @@ phases:
       - echo Checking recent ECS task status...
       - |
         TASK_ARNS=$(aws ecs list-tasks \
-          --cluster $CLUSTER_NAME \
-          --service-name $SERVICE_NAME \
+          --cluster $ECS_CLUSTER_NAME \
+          --service-name $ECS_SERVICE_NAME \
           --desired-status STOPPED \
           --max-items 5 \
           --region $AWS_REGION \
@@ -63,7 +63,7 @@ phases:
         if [ -n "$TASK_ARNS" ]; then
           echo "Found recent stopped tasks. Describing them..."
           aws ecs describe-tasks \
-            --cluster $CLUSTER_NAME \
+            --cluster $ECS_CLUSTER_NAME \
             --tasks $TASK_ARNS \
             --region $AWS_REGION \
             --query 'tasks[*].{Task:taskArn, LastStatus:lastStatus, ExitCode:containers[0].exitCode, Reason:stoppedReason}' \
