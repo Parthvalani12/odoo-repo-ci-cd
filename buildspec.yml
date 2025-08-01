@@ -1,20 +1,26 @@
 version: 0.2
 
 env:
-  variables:
-    AWS_ACCOUNT_ID: "165270212723"
-    AWS_REGION: "us-east-1"
-    REPOSITORY_NAME: "odoo-ci/cd"
-    CLUSTER_NAME: "demo-cluster"
-    SERVICE_NAME: "odoo-service-6xfmftdl"
+  secrets-manager:
+    DOCKER_USERNAME: dockerhub/credentials:DOCKER_USERNAME
+    DOCKER_PASSWORD: dockerhub/credentials:DOCKER_PASSWORD
+    AWS_ACCOUNT_ID: ecs/deploy-secrets:AWS_ACCOUNT_ID
+    AWS_REGION: ecs/deploy-secrets:AWS_REGION
+    REPOSITORY_NAME: ecs/deploy-secrets:REPOSITORY_NAME
+    ECS_CLUSTER_NAME: ecs/deploy-secrets:ECS_CLUSTER_NAME
+    ECS_SERVICE_NAME: ecs/deploy-secrets:ECS_SERVICE_NAME
 
 phases:
   pre_build:
     commands:
       - set -e
+      - echo Logging in to Docker Hub...
+      - echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
+
       - echo Logging in to Amazon ECR...
       - aws --version
       - docker --version
+
       - export IMAGE_TAG=$CODEBUILD_BUILD_NUMBER
       - export REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPOSITORY_NAME
       - echo Repository URI is $REPOSITORY_URI
@@ -32,6 +38,7 @@ phases:
       - echo Build completed on `date`
       - docker push $REPOSITORY_URI:$IMAGE_TAG
       - docker push $REPOSITORY_URI:latest
+
       - echo Updating ECS service with new image...
       - |
         aws ecs update-service \
@@ -41,9 +48,8 @@ phases:
           --region $AWS_REGION
 
       - echo Waiting for tasks to start...
-      - sleep 30  # Wait for new task to spin up
+      - sleep 30
 
-      # Check for failed tasks in the last 5 attempts
       - echo Checking recent ECS task status...
       - |
         TASK_ARNS=$(aws ecs list-tasks \
