@@ -1,14 +1,14 @@
 version: 0.2
 
 env:
-  secrets-manager:
-    DOCKER_USERNAME: dockerhub/credentials:DOCKER_USERNAME
-    DOCKER_PASSWORD: dockerhub/credentials:DOCKER_PASSWORD
-    AWS_ACCOUNT_ID: ecs/deploy-secrets:AWS_ACCOUNT_ID
-    AWS_REGION: ecs/deploy-secrets:AWS_REGION
-    REPOSITORY_NAME: ecs/deploy-secrets:REPOSITORY_NAME
-    ECS_CLUSTER_NAME: ecs/deploy-secrets:ECS_CLUSTER_NAME
-    ECS_SERVICE_NAME: ecs/deploy-secrets:ECS_SERVICE_NAME
+  variables:
+    AWS_ACCOUNT_ID: "165270212723"
+    AWS_REGION: "us-east-1"
+    REPOSITORY_NAME: "odoo-ci/cd"
+    CLUSTER_NAME: "demo-cluster"
+    SERVICE_NAME: "odoo-service-6xfmftdl"
+    DOCKER_USERNAME: "parthvalani"
+    DOCKER_PASSWORD: "dckr_pat_8SUq4jN_2sPGpkRvS7zZorxvi00"
 
 phases:
   pre_build:
@@ -20,7 +20,6 @@ phases:
       - echo Logging in to Amazon ECR...
       - aws --version
       - docker --version
-
       - export IMAGE_TAG=$CODEBUILD_BUILD_NUMBER
       - export REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPOSITORY_NAME
       - echo Repository URI is $REPOSITORY_URI
@@ -38,39 +37,13 @@ phases:
       - echo Build completed on `date`
       - docker push $REPOSITORY_URI:$IMAGE_TAG
       - docker push $REPOSITORY_URI:latest
-
       - echo Updating ECS service with new image...
       - |
         aws ecs update-service \
-          --cluster $ECS_CLUSTER_NAME \
-          --service $ECS_SERVICE_NAME \
+          --cluster $CLUSTER_NAME \
+          --service $SERVICE_NAME \
           --force-new-deployment \
           --region $AWS_REGION
-
-      - echo Waiting for tasks to start...
-      - sleep 30
-
-      - echo Checking recent ECS task status...
-      - |
-        TASK_ARNS=$(aws ecs list-tasks \
-          --cluster $ECS_CLUSTER_NAME \
-          --service-name $ECS_SERVICE_NAME \
-          --desired-status STOPPED \
-          --max-items 5 \
-          --region $AWS_REGION \
-          --query 'taskArns' --output text)
-
-        if [ -n "$TASK_ARNS" ]; then
-          echo "Found recent stopped tasks. Describing them..."
-          aws ecs describe-tasks \
-            --cluster $ECS_CLUSTER_NAME \
-            --tasks $TASK_ARNS \
-            --region $AWS_REGION \
-            --query 'tasks[*].{Task:taskArn, LastStatus:lastStatus, ExitCode:containers[0].exitCode, Reason:stoppedReason}' \
-            --output table
-        else
-          echo "No recently stopped tasks found."
-        fi
 
 artifacts:
   files: []
